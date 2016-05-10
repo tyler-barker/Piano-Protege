@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="Data/Songs"/>
+	<classpathentry excluding="Songs/|Images/" kind="src" path="Data"/>
+	<classpathentry kind="src" path="Data/Images"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="jar/gluegen.jar"/>
+	<classpathentry kind="lib" path="library/minim.jar"/>
+	<classpathentry kind="lib" path="lib/core.jar"/>
+	<classpathentry kind="lib" path="library/opengl.jar"/>
+	<classpathentry kind="lib" path="library/jsminim.jar"/>
+	<classpathentry kind="lib" path="library/jl1.0.jar"/>
+	<classpathentry kind="lib" path="library/mp3spi1.9.4.jar"/>
+	<classpathentry kind="lib" path="library/tritonus_aos.jar"/>
+	<classpathentry kind="lib" path="library/tritonus_share.jar"/>
+	<classpathentry kind="lib" path="library/jogl.jar">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="C:/Users/tbarker/Downloads/processing-1.5.1-windows/processing-1.5.1/modes/java/libraries/opengl/library/windows64"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="library/gluegen-rt.jar"/>
+	<classpathentry kind="lib" path="jar/jogl-all.jar">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="C:/Users/tbarker/Downloads/jogamp-all-platforms/jogamp-all-platforms/lib/windows-amd64"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

@@ -1,0 +1,886 @@
+package src;
+//package src;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import javax.media.opengl.GL;
+
+import processing.core.PApplet;
+import processing.core.PFont;
+import processing.core.PGraphics;
+import processing.core.PImage;
+//import processing.opengl.PGraphicsOpenGL;
+import ddf.minim.AudioPlayer;
+import ddf.minim.Minim;
+import rwmidi.*;
+
+
+public class Main extends PApplet {
+
+	private HashMap<Character, Integer> keyMap;
+	private Character[] keyNames = {'C', 'D', 'E', 'F', 'G', 'A', 'B'};
+	private String[] godMap = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B", "B#"};
+	private HashMap<Integer, Integer> colorMap;
+	private HashMap<Integer,Character> rightHandKeys;
+	private int[] rightKeyPitches = {72,74,76,77,79,81,83};
+	private HashMap<Integer,Character> leftHandKeys;
+	private int[] leftKeyPitches = {60,62,64,65,67,69,71};
+	private static final long serialVersionUID = 1L;
+	
+	private PFont font;
+	//private PGraphicsOpenGL pgl;
+	private GL gl;
+	private boolean WINDOWS = true;
+	
+	public final int NOTE_TIME_ON_SCREEN = 1000;
+	public final int APPLET_HEIGHT = screen.height-100;
+	public final int APPLET_WIDTH = screen.width-10;
+	private ArrayList<Key> notelist;
+	private ArrayList<Key> notesOnScreen;
+	private ArrayList<Key> notelist2;
+	private ArrayList<Key> notesOnScreen2;
+	private ArrayList<Song> songlist;
+	private float startTime;
+	private int score,score2,song =0;
+	private AudioPlayer groove;
+	private Minim minim;
+   // private ScoreBoard board;
+	private boolean start,loaded;
+	private float noteWidth, x, y;
+	private int i,currentTime,state,menuChoice,combo,combo2,multiplier,multiplier2,songChoice,totalNotes, correctNotes;
+	boolean keys[];
+	private PGraphics buffer;
+	private PImage img;
+	boolean pause;
+	private MidiInput input;
+	private PImage logo, pianoBackground;
+	private boolean godMode;
+	
+	
+	public void setup() {
+		windowInit();
+		glInit();
+		godMode = false;
+		input = RWMidi.getInputDevices()[0].createInput(this);
+		font = createFont("Georgia-Bold", 32); 
+		logo = loadImage("pp_logo.gif");
+		pianoBackground = loadImage("piano_background.jpg");
+		textFont(font, 32);
+		textAlign(LEFT);
+		pause = false;
+		//board = new ScoreBoard();
+		frameRate(45);
+		combo = 0;
+		combo2 = 0;
+		multiplier = 0;
+		multiplier2 = 0;
+		state = 1;
+		menuChoice = 1;
+		songChoice = 0;
+		totalNotes = 0;
+		correctNotes = 0;
+		minim = new Minim(this);
+		start = false;
+		loaded = false;
+        notelist = new ArrayList<Key>();
+        notesOnScreen = new ArrayList<Key>();
+        notelist2 = new ArrayList<Key>();
+        notesOnScreen2 = new ArrayList<Key>();
+        songlist = new ArrayList<Song>();
+        fillSongList();
+        keys = new boolean[8];
+        score = 0;
+        score2 = 0;
+        noteWidth = APPLET_WIDTH/20f;
+        //frameRate(60);
+        //delay(10);
+		noCursor();
+		keyMap = new HashMap<Character, Integer>();
+		rightHandKeys = new HashMap<Integer, Character>();
+		leftHandKeys = new HashMap<Integer, Character>();
+		for (int i = 0; i < keyNames.length; i++) {
+			keyMap.put(keyNames[i], i);
+			rightHandKeys.put(rightKeyPitches[i],keyNames[i]);
+			leftHandKeys.put(leftKeyPitches[i],keyNames[i]);
+		}
+		buffer = createGraphics(7*APPLET_WIDTH/20, 100, JAVA2D);
+		drawKeyboard();
+		fillColorMap();
+		/*String[] fontList = PFont.list(); 
+		for (int k = 0;k<fontList.length;k++)
+		System.out.println(fontList[k]);*/
+      
+	}
+	
+	public void windowInit() {
+		if (WINDOWS) size(APPLET_WIDTH, APPLET_HEIGHT, OPENGL);
+		else size(screen.width, screen.height, OPENGL);
+	}
+	
+	public void glInit() {
+		//pgl = (PGraphicsOpenGL) g;  
+		//gl = pgl.gl; 			   
+		hint(ENABLE_OPENGL_4X_SMOOTH);
+		hint(DISABLE_OPENGL_ERROR_REPORT);
+		//gl.setSwapInterval(1);
+		if(!WINDOWS) {
+			gl.setSwapInterval(1);
+			//hint(ENABLE_OPENGL_4X_SMOOTH);
+		}
+	}
+	
+	public void draw()
+	{
+		//System.out.println(frameRate);
+		if (state == 0)
+			playSong();
+		else if (state == 1)
+			drawTitleScreen();
+		else if (state == 2)
+			drawMainMenu();
+		else if (state == 3)
+			drawEndOfSong();
+		else if (state == 4)
+			drawPauseScreen();
+		else if (state == 5)
+			drawSongChoiceMenu();
+/*		else if (state == 6)
+			drawScoreScreen(); */
+	}
+	
+	public void fillColorMap() {
+		colorMap = new HashMap<Integer, Integer>();
+		colorMap.put(0, color(0,20,245));
+		colorMap.put(1, color(0,230,20));
+		colorMap.put(2, color(252, 250, 10));
+		colorMap.put(3, color(255));
+		colorMap.put(4, color(103,50,99));
+		colorMap.put(5, color(210,100,0));
+		colorMap.put(6, color(0));
+	}
+	
+	public void playSong()
+	{
+		textAlign(LEFT);
+		if (!start)
+			startSong();
+		else if (groove.isPlaying()||pause)
+		{
+		background(255,0,0);
+		fill(0);
+		rect(7*APPLET_WIDTH/20,0,3*APPLET_WIDTH/10,APPLET_HEIGHT);
+		fill(255);
+		stroke(0);
+		currentTime = groove.position();
+		//currentTime = mp3.position();
+		findNotes(currentTime);
+		removeNotes(currentTime);
+		if (!godMode)
+			drawNotesOnScreen(currentTime);
+		fill(255);
+		image(img,0,APPLET_HEIGHT-100);
+		image(img,13*APPLET_WIDTH/20,APPLET_HEIGHT-100);
+		drawLines();
+		text("score:  "+ score, 4*APPLET_WIDTH/10, 50);
+		text("combo:  "+ combo, 4*APPLET_WIDTH/10, 100);
+		}
+		else
+		{
+			state = 3;
+			menuChoice = 1;
+			start = false;
+			loaded = false;
+		}		
+	}
+	public void startSong()
+	{
+		if (!loaded)
+		{
+			score = 0;
+			score2 = 0;
+			combo = 0;
+			combo2 = 0;
+			startTime = millis();
+			fillNoteList(songlist.get(songChoice).getMidi());
+			totalNotes = notelist.size() + notelist2.size();
+			groove = minim.loadFile(songlist.get(songChoice).getMp3(),1024);
+			loaded = true;
+			//input = RWMidi.getInputDevices()[0].createInput(this);
+		}
+		//startTime=millis();
+		background(255,0,0);
+		fill(0);
+		rect(7*APPLET_WIDTH/20,0,3*APPLET_WIDTH/10,APPLET_HEIGHT);
+		fill(255);
+		stroke(0);
+		text("Loading...", 4*APPLET_WIDTH/10, 50);
+		currentTime = (int)(millis()-startTime-5000);
+		findNotes(currentTime);
+		removeNotes(currentTime);
+		if (!godMode)
+			drawNotesOnScreen(currentTime);
+		fill(255);
+		imageMode(CORNER);
+		image(img,0,APPLET_HEIGHT-100);
+		image(img,13*APPLET_WIDTH/20,APPLET_HEIGHT-100);
+		drawLines();
+        //mp3 = new MP3("C:\\Documents and Settings\\Ty\\My Documents\\My Music\\Music Files 2\\muse - Piano Thing.mp3");
+        //mp3.play();
+		//while(millis()-startTime<5000){}
+		if (millis()-startTime >5000)
+		{
+		//new Thread()
+		//{
+			//public void run()
+			//{
+				groove.play(0);
+			//}
+		//}.start();
+		start = true;
+		}
+	}
+	public void drawPauseScreen()
+	{
+		background(0);
+		textAlign(CENTER,CENTER);
+		fill(255);
+		text("PAUSED",APPLET_WIDTH/2,APPLET_HEIGHT/10);
+		fill(0);
+		if (menuChoice == 1)
+			fill(255);
+		rect(3*APPLET_WIDTH/10,3*APPLET_HEIGHT/5,2*APPLET_WIDTH/5,APPLET_HEIGHT/10);
+		fill(0);
+		if (menuChoice == 2)
+			fill(255);
+		rect(3*APPLET_WIDTH/10,7*APPLET_HEIGHT/10,2*APPLET_WIDTH/5,APPLET_HEIGHT/10);
+		fill(0);
+		if (menuChoice == 3)
+			fill(255);
+		rect(3*APPLET_WIDTH/10,4*APPLET_HEIGHT/5,2*APPLET_WIDTH/5,APPLET_HEIGHT/10);
+		fill(0);
+		if (menuChoice == 4)
+			fill(255);
+		rect(3*APPLET_WIDTH/10,9*APPLET_HEIGHT/10,2*APPLET_WIDTH/5,APPLET_HEIGHT/10);
+		fill(255,0,0);
+		text("Resume",APPLET_WIDTH/2,13*APPLET_HEIGHT/20);
+		text("Restart Song",APPLET_WIDTH/2,3*APPLET_HEIGHT/4);
+		text("Choose Another Song",APPLET_WIDTH/2,17*APPLET_HEIGHT/20);
+		text("Go to Main Menu",APPLET_WIDTH/2,19*APPLET_HEIGHT/20);
+	}
+	public void drawTitleScreen()
+	{
+		background(0,0,255);
+		//pianoBackground.resize(APPLET_WIDTH, APPLET_HEIGHT);
+		//background(pianoBackground);
+		textAlign(CENTER);
+		fill(255,0,0);
+		textFont(font, 32);
+		imageMode(CENTER);
+		image(logo,APPLET_WIDTH/2,APPLET_HEIGHT/3,500,300);
+		noStroke();
+		//text("PIANO PROTEGE!!!", APPLET_WIDTH/2,APPLET_HEIGHT/2);
+		if (menuChoice == 1)
+		{
+			fill(255,0,0);
+		}
+		else
+		{
+			fill(0,0,255);
+		}
+		rect(0,APPLET_HEIGHT-200,APPLET_WIDTH,100);
+		if (menuChoice == 2)
+			fill(255,0,0);
+		else fill(0,0,255);
+		rect(0,APPLET_HEIGHT-100,APPLET_WIDTH,100);
+		stroke(0);
+		line(0,APPLET_HEIGHT-200,APPLET_WIDTH,APPLET_HEIGHT-200);
+		line(0,APPLET_HEIGHT-100,APPLET_WIDTH,APPLET_HEIGHT-100); 
+		//System.out.println("I'm here");
+		fill(0);
+		text("Play", APPLET_WIDTH/2, APPLET_HEIGHT-150);
+		text("Quit", APPLET_WIDTH/2, APPLET_HEIGHT-50);	
+	}
+	public void drawMainMenu()
+	{
+		textAlign(CENTER);
+		background(0,255,0);
+		fill(0,255,0);
+		stroke(0);
+		line(APPLET_HEIGHT/3,0,0,APPLET_HEIGHT/3);
+		if (menuChoice==1)
+			fill(0);
+		rect(0,0,APPLET_WIDTH,APPLET_HEIGHT/3);
+		fill(0,255,0);
+		if (menuChoice==2)
+			fill(0);
+		rect(0,APPLET_HEIGHT/3,APPLET_WIDTH,APPLET_HEIGHT/3);
+		fill(0,255,0);
+		if (menuChoice==3)
+			fill(0);
+		rect(0,2*APPLET_HEIGHT/3,APPLET_WIDTH,APPLET_HEIGHT/3);
+		fill(255);
+		text("Choose Song", APPLET_WIDTH/2,APPLET_HEIGHT/6);
+		text("Go to Title", APPLET_WIDTH/2,APPLET_HEIGHT/2);
+		text("Quit", APPLET_WIDTH/2,5 * APPLET_HEIGHT/6);
+	}
+	public void drawEndOfSong()
+	{
+		background(150,0,150);
+		fill(255,255,100);
+		textAlign(CENTER,CENTER);
+		text("Congratulations, you have passed:",APPLET_WIDTH/2,75);
+		text(songlist.get(songChoice).getTitle(), APPLET_WIDTH/2,150);
+		text("Score: "+score,APPLET_WIDTH/2,225);
+		//board.addScore(""+score, songlist.get(songChoice).getTitle());
+		text("Your correct notes percentage is " + (correctNotes * 100) / totalNotes + "%", APPLET_WIDTH/2, 300);
+		fill(150,0,150);
+		if (menuChoice==1)
+			fill(255,255,100);
+		rect(0,APPLET_HEIGHT-300,APPLET_WIDTH,100);
+		fill(150,0,150);
+		if (menuChoice==2)
+			fill(255,255,100);
+		rect(0,APPLET_HEIGHT-200,APPLET_WIDTH,100);
+		fill(150,0,150);
+		if (menuChoice==3)
+			fill(255,255,100);
+		rect(0,APPLET_HEIGHT-100,APPLET_WIDTH,100);
+		fill(0);
+		text("Retry",APPLET_WIDTH/2,APPLET_HEIGHT-250);
+		text("Go to main menu",APPLET_WIDTH/2,APPLET_HEIGHT-150);
+		text("Quit",APPLET_WIDTH/2,APPLET_HEIGHT-50);
+	}
+	public void drawSongChoiceMenu()
+	{
+		background(144,40,0);
+		textAlign(CENTER,CENTER);
+		for (i=0;i<songlist.size();i++)
+		{
+			fill(0);
+			if (menuChoice == i+1)
+				fill(255);
+			text(songlist.get(i).getTitle(),APPLET_WIDTH/2,(i+1)*APPLET_HEIGHT/(songlist.size()+2));
+		}
+		fill(0);
+		if (menuChoice == 0)
+			fill(255);
+		text("Back",APPLET_WIDTH/2,(songlist.size()+1)*APPLET_HEIGHT/(songlist.size()+2));
+	}
+/*	public void drawScoreScreen()
+	{
+		
+		background(0,255,0);
+		textAlign(CENTER);
+		text("HIGH SCORE",APPLET_WIDTH/2, 50);
+		if(keyCode == LEFT && song != songlist.size()-1)
+			song--;
+		if(keyCode == RIGHT&& song != 0)
+			song++;
+		for(int s=0;s<10;s++)
+		{
+			text(board.getScore(song,s)+"",APPLET_WIDTH/5,(s+1)*APPLET_HEIGHT/10);
+			text(board.getTitle(song)+"",3*APPLET_WIDTH/5,(s+1)*APPLET_HEIGHT/10);
+		}
+		
+	} */
+	public void drawKeyboard()
+	{
+		buffer.beginDraw();
+		buffer.background(255);
+		buffer.fill(0);
+		for (i=1;i<=6;i++)
+		{
+			if (i==3) continue;
+			buffer.rect(i*noteWidth-(3*noteWidth/10f), 0, 3*noteWidth/5f, 65);
+		}
+		buffer.endDraw();
+		img = buffer.get(0,0,buffer.width,buffer.height);
+	}
+	
+	public void drawLines()
+	{
+		for (i=0;i<=7;i++)
+		{
+			line(i*noteWidth, 0, i*noteWidth, APPLET_HEIGHT);
+		}
+		for (i=0;i<=7;i++)
+		{
+			//line(3*APPLET_WIDTH/5+i*noteWidth, 0, 3*APPLET_WIDTH/5+i*noteWidth, APPLET_HEIGHT);
+			line(APPLET_WIDTH-i*noteWidth, 0, APPLET_WIDTH-i*noteWidth, APPLET_HEIGHT);
+		}
+	}
+	
+    public void findNotes(int time)
+    {
+    	if (!notelist.isEmpty())
+    	{
+    		if (notelist.get(0).getStart()-time<NOTE_TIME_ON_SCREEN)
+    		{
+    			notesOnScreen.add(notelist.get(0));
+    			notelist.remove(0);
+    		}
+    	}
+    	if (!notelist2.isEmpty())
+    	{
+    		if (notelist2.get(0).getStart()-time<NOTE_TIME_ON_SCREEN)
+    		{
+    			notesOnScreen2.add(notelist2.get(0));
+    			notelist2.remove(0);
+    		}
+    	}
+    }    
+    public void removeNotes(int time)
+    {
+    	if (!notesOnScreen.isEmpty())
+    	{
+    		Key note = notesOnScreen.get(0);
+    		if (note.getStart()-time<-500)
+    		{
+    			notesOnScreen.remove(0);
+    			combo = 0;
+    		}
+    	}
+    	if (!notesOnScreen2.isEmpty())
+    	{
+    		Key note = notesOnScreen2.get(0);
+    		if (note.getStart()-time<-500)
+    		{
+    			notesOnScreen2.remove(0);
+    			combo = 0;
+    		}
+    	}
+    }
+    public void drawNotesOnScreen(int time)
+    {
+		for (i=0;i<notesOnScreen.size();i++)
+		{
+			Key note = notesOnScreen.get(i);
+			int tone = keyMap.get(note.getTone().charAt(0));
+			x = tone*(APPLET_WIDTH/20f);
+			y = ((APPLET_HEIGHT-100)*(NOTE_TIME_ON_SCREEN-(note.getStart()-time)))/NOTE_TIME_ON_SCREEN;
+			width = (APPLET_WIDTH/20);
+			height = 100*(APPLET_HEIGHT-100)/NOTE_TIME_ON_SCREEN;
+			fill(colorMap.get(tone));
+			//rect(x+(3*APPLET_WIDTH/5),y-height,width,30);
+			rect(x+(13*APPLET_WIDTH/20f),y-height,width,30);
+		}
+		fill(255);
+		for (i=0;i<notesOnScreen2.size();i++)
+		{
+			Key note = notesOnScreen2.get(i);
+			int tone = keyMap.get(note.getTone().charAt(0));
+			x = tone*(APPLET_WIDTH/20f);
+			y = ((APPLET_HEIGHT-100)*(NOTE_TIME_ON_SCREEN-(note.getStart()-time)))/NOTE_TIME_ON_SCREEN;
+			width = (APPLET_WIDTH/20);
+			height = 100*(APPLET_HEIGHT-100)/NOTE_TIME_ON_SCREEN;
+			fill(colorMap.get(tone));
+			rect(x,y-height,width,30);
+		}
+		fill(255);
+    }
+	public void keyPressed()
+	{
+		/*switch(state)
+		{
+		case 0:*/
+		if (state == 0)
+		{
+			if (key-'0'>0&&key-'0'<9) {
+				switch (key) {
+				case '1':
+					score('C');
+					break;
+				case '2':
+					score('D');
+					break;
+				case '3':
+					score('E');
+					break;
+				case '4':
+					score('F');
+					break;
+				case '5':
+					score('G');
+					break;
+				case '6':
+					score('A');
+					break;
+				case '7':
+					score('B');
+					break;
+				default:
+				}
+			}
+
+
+			else if (key=='p')
+			{
+				if (pause)
+				{
+					pause = false;
+					groove.play(groove.position());
+				}
+				else
+				{
+					pause = true;
+					groove.pause();
+					state=4;
+					menuChoice=1;
+				}
+			}
+		}
+		else if (state == 1)//case 1:
+		{
+			if (key==CODED)
+			{
+				if (keyCode==DOWN)
+					menuChoice = 2;
+				else if (keyCode==UP)
+					menuChoice = 1;
+			}
+			else if (key==ENTER)
+			{
+				if (menuChoice == 1)
+				{
+					//background(255,0,0);
+					state = 2;
+				}
+				else if (menuChoice == 2)
+					this.exit();
+			}			
+		}
+		else if (state == 2)//case 2:
+		{
+			if (key==CODED)
+			{
+				if (keyCode==DOWN)
+					if (menuChoice!=3)
+						menuChoice++;
+				if (keyCode==UP)
+					if (menuChoice!=1)
+						menuChoice--;
+			}
+			else if (key==ENTER)
+			{
+				if (menuChoice == 1)
+				{
+					state = 5;
+					menuChoice=1;
+				}
+				else if (menuChoice == 2)
+				{
+					state=1;
+					menuChoice=1;
+				}
+				else if (menuChoice == 3)
+					this.exit();
+			}	
+		}
+		else if (state == 3)
+		{
+			System.out.println(menuChoice);
+			if (key==CODED)
+			{
+				if (keyCode==DOWN)
+					if (menuChoice!=3)
+						menuChoice++;
+				if (keyCode==UP)
+					if (menuChoice!=1)
+						menuChoice--;
+			}
+			else if (key==ENTER)
+			{
+				if (menuChoice == 1)
+				{
+					background(255,0,0);
+					state = 0;
+				}
+				else if (menuChoice == 2)
+				{
+					state=2;
+					menuChoice=1;
+				}
+				else if (menuChoice == 3)
+					this.exit();
+			}	
+		}
+		else if (state == 4)
+		{
+			if (key==CODED)
+			{
+				if (keyCode==DOWN)
+					if (menuChoice!=4)
+						menuChoice++;
+				if (keyCode==UP)
+					if (menuChoice!=1)
+						menuChoice--;
+			}
+			else if (key==ENTER)
+			{
+				if (menuChoice == 1)
+				{
+					//background(255,0,0);
+					groove.play();
+					pause=false;
+					state = 0;
+				}
+				else if (menuChoice == 2)
+				{
+					notelist.clear();
+					notelist2.clear();
+					notesOnScreen.clear();
+					notesOnScreen2.clear();
+					fillNoteList(songlist.get(songChoice).getMidi());
+					groove.close();
+					start = false;
+					loaded = false;
+					score=0;
+					score2=0;
+					state=0;
+					pause = false;
+				}
+				else if (menuChoice == 3)
+				{
+					state=5;
+					menuChoice=1;
+					start = false;
+					loaded = false;
+					pause = false;
+				}
+				else if (menuChoice == 4)
+				{
+					state=2;
+					menuChoice = 1;
+					pause = false;
+					loaded = false;
+					start = false;
+				}
+			}	
+		}
+		else if (state == 5)
+		{
+			if (key==CODED)
+			{
+				if (keyCode==DOWN)
+				{
+					menuChoice++;
+					menuChoice=menuChoice%(songlist.size()+1);
+				}
+				if (keyCode==UP)
+				{
+					menuChoice--;
+					menuChoice=(menuChoice+songlist.size()+1)%(songlist.size()+1);
+				}
+			}
+			else if (key==ENTER)
+			{
+				if (menuChoice==0)
+				{
+					state=2;
+					menuChoice=1;
+				}
+				else
+				{
+					songChoice = menuChoice - 1;
+					state = 0;
+					menuChoice = 1;
+					background(255,0,0);
+				}
+			}		
+		}
+			
+		//}
+	}
+    public void noteOnReceived(Note note) {
+    	try {
+    		if (state==0)
+    		{
+    			if (!godMode) {
+    				if (note.getVelocity()>0)
+    				{
+    					if (note.getPitch()>=72&&note.getPitch()<84)
+    						score(rightHandKeys.get(note.getPitch()));
+    					else if (note.getPitch() >= 60)
+    						score2(leftHandKeys.get(note.getPitch()));
+    				}
+    			}
+    			else {
+    				if (note.getVelocity()>0) 
+    					scoreGod(note.getPitch());
+    			}
+    		}
+    	} catch (Exception e) {}
+	}
+	public void score(char key)
+	{
+    	boolean found = false;
+    	for (int i=0;i<notesOnScreen.size();i++)
+    	{
+    		if (key==(notesOnScreen.get(i).getTone().charAt(0)))
+    		//if (keyMap.get(notesOnScreen.get(i).getTone().charAt(0))==key-1)
+    		{
+    			if (abs(notesOnScreen.get(i).getStart()-groove.position())>300)
+    				break;
+    			notesOnScreen.remove(i);
+				multiplier=min(combo/10+1,4);
+				score+=5*multiplier;
+    			combo++;
+    			correctNotes++;
+    			//fill(0,0,255);
+    			//rect((keyMap.get(key))*noteWidth+3*APPLET_WIDTH/5,APPLET_HEIGHT-100,noteWidth,100);
+    			//fill(255);
+    			found = true;
+    			break;
+    		}
+    	}
+    	if (found == false)
+    	{
+    		combo=0;
+			fill(255,0,0);
+			//rect((keyMap.get(key))*noteWidth+3*APPLET_WIDTH/5,APPLET_HEIGHT-100,noteWidth,100);
+			fill(255);
+    		//score-=5;
+    		//scoreText.setText(Integer.toString(score));
+    	}
+	}
+	public void score2(char key)
+	{
+    	boolean found = false;
+    	for (int i=0;i<notesOnScreen2.size();i++)
+    	{
+    		if (key==(notesOnScreen2.get(i).getTone().charAt(0)))
+    		//if (keyMap.get(notesOnScreen.get(i).getTone().charAt(0))==key-1)
+    		{
+    			if (abs(notesOnScreen2.get(i).getStart()-groove.position())>300)
+    				break;
+    			notesOnScreen2.remove(i);
+				multiplier=min(combo/10+1,4);
+				score+=5*multiplier;
+    			combo++;
+    			correctNotes++;
+    			//fill(0,0,255);
+    			//rect((keyMap.get(key))*noteWidth,APPLET_HEIGHT-100,noteWidth,100);
+    			//fill(255);
+    			found = true;
+    			break;
+    		}
+    	}
+    	if (found == false)
+    	{
+    		combo=0;
+			//fill(255,0,0);
+			//rect((keyMap.get(key))*noteWidth,APPLET_HEIGHT-100,noteWidth,100);
+			//fill(255);
+    		//score-=5;
+    		//scoreText.setText(Integer.toString(score));
+    	}
+	}
+	
+	public void scoreGod(int key) {
+		boolean found = false;
+    	for (int i=0;i<notesOnScreen.size();i++)
+    	{
+    		int midiTone = toneToMidi(notesOnScreen.get(i).getTone());
+    		if (key==midiTone)
+    		{
+    			if (abs(notesOnScreen.get(i).getStart()-groove.position())>300)
+    				break;
+    			notesOnScreen.remove(i);
+				multiplier=min(combo/10+1,4);
+				score+=5*multiplier;
+    			combo++;
+    			correctNotes++;
+    			found = true;
+    			break;
+    		}
+    	}
+    	for (int i=0;i<notesOnScreen2.size();i++)
+    	{
+    		int midiTone = toneToMidi(notesOnScreen2.get(i).getTone());
+    		if (key==midiTone)
+    		{
+    			if (abs(notesOnScreen2.get(i).getStart()-groove.position())>300)
+    				break;
+    			notesOnScreen2.remove(i);
+				multiplier=min(combo/10+1,4);
+				score+=5*multiplier;
+    			combo++;
+    			correctNotes++;
+    			found = true;
+    			break;
+    		}
+    	}
+    	if (found == false)
+    	{
+    		combo=0;
+    	}
+	}
+	
+	public int toneToMidi(String tone) {
+		int keyOffset = 0;
+		int octave = 0;
+		if (tone.length() >= 3) {
+			String noteName = tone.substring(0, 2);
+			for(int i = 0; i< godMap.length; i++) {
+				if (noteName.equals(godMap[i])) { 
+					keyOffset = i;
+					break;
+				}
+			}
+		} else if (tone.length() == 2) {
+			String noteName = tone.substring(0, 1);
+			for(int i = 0; i< godMap.length; i++) {
+				if (noteName.equals(godMap[i])) { 
+					keyOffset = i;
+					break;
+				}
+			}
+		}
+		//octave = Integer.valueOf(tone.charAt(tone.length()-1));
+		octave = tone.charAt(tone.length()-1)-'0';
+		return 24+keyOffset+(octave-1)*12;
+	}
+	
+	public void stop()
+	{
+		if (state==0)
+		{
+			// always close Minim audio classes when you are done with them
+			groove.close();
+	  // always stop Minim before exiting
+			minim.stop();
+		}
+	 
+	  super.stop();
+	}
+	
+	public void fillNoteList(String filePath) 
+	{
+		notelist.clear();
+		notelist2.clear();
+		notesOnScreen.clear();
+		notesOnScreen2.clear();
+		MidiParser mp = new MidiParser(filePath);
+		notelist = mp.parse(0);
+		notelist2 = mp.parse(1);
+		//mp = new MidiParser("ThanksgivingL.mid");
+		//notelist2 = mp.parse(1);
+		//notelist2 = mp.parse(2);
+	} 
+	public void fillSongList()
+	{
+		songlist.add(new Song("Legend of Zelda","",
+				"loz.mid","loz.mp3"));
+		songlist.add(new Song("Moonlight Sonata","Beethoven",
+				"MoonlightSonataRightHand.mid","MoonlightSonata.mp3"));
+		songlist.add(new Song("Thanksgiving","George Winston",
+				"Thanksgiving.mid","Thanksgiving.mp3"));
+		songlist.add(new Song("Super Mario Bros. Theme","",
+				"SMB.mid","SMB.mp3"));
+		songlist.add(new Song("Mike Tyson's Punch Out Theme","",
+				"MikeTysonR.mid","MikeTyson.mp3"));
+		songlist.add(new Song("Thanksgiving (God Mode)","",
+				"ThanksgivingGod.mid","Thanksgiving.mp3"));
+	}
+}

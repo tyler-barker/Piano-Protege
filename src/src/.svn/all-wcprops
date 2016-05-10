@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 23
+/20/!svn/ver/15/src/src
+END
+MidiParser.java
+K 25
+svn:wc:ra_dav:version-url
+V 39
+/20/!svn/ver/13/src/src/MidiParser.java
+END
+MidiInputTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 41
+/20/!svn/ver/3/src/src/MidiInputTest.java
+END
+ScoreBoard.java
+K 25
+svn:wc:ra_dav:version-url
+V 39
+/20/!svn/ver/15/src/src/ScoreBoard.java
+END
+Main.java
+K 25
+svn:wc:ra_dav:version-url
+V 33
+/20/!svn/ver/15/src/src/Main.java
+END
+Song.java
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/20/!svn/ver/7/src/src/Song.java
+END
+Key.java
+K 25
+svn:wc:ra_dav:version-url
+V 31
+/20/!svn/ver/3/src/src/Key.java
+END
+DumpReceiver.java
+K 25
+svn:wc:ra_dav:version-url
+V 41
+/20/!svn/ver/13/src/src/DumpReceiver.java
+END
+PlaySong.java
+K 25
+svn:wc:ra_dav:version-url
+V 36
+/20/!svn/ver/3/src/src/PlaySong.java
+END
+MidiParseTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 42
+/20/!svn/ver/13/src/src/MidiParseTest.java
+END

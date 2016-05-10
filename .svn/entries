@@ -1,0 +1,71 @@
+9
+
+dir
+2
+http://svn.datasingularity.com/20
+http://svn.datasingularity.com/20
+
+
+
+2008-11-24T17:51:43.881064Z
+2
+ben
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+66d1ea2a-705c-0410-bf5b-cbfc86788fb7
+
+.project
+file
+
+
+
+
+2008-11-25T21:51:59.281250Z
+12679e9c0d0ca9c7adbc9ec1b3918da2
+2008-11-24T14:35:04.720150Z
+1
+ben
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+393
+
+src
+dir
+
+bin
+dir
+
+Data
+dir
+
